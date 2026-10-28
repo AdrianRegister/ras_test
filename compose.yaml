@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: internal-app-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev123
+      POSTGRES_DB: ras_test
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U dev -d ras_test']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

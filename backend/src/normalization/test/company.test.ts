@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeCompanyName } from '../src/company.js';
+import { normalizeCompanyName } from '../company.js';
 describe('normalizeCompanyName', () => {
   it('normalizes capitalization and whitespace', () => {
     expect(normalizeCompanyName('  CONSTRUCCIONES   EBRO SL  ')).toBe('construcciones ebro sl');

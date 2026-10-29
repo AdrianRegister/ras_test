@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeCif, normalizeEmail } from '../src/identifiers.js';
+import { normalizeCif, normalizeEmail } from '../identifiers.js';
 
 describe('normalizeCif', () => {
   it('trims whitespace and converts to uppercase', () => {

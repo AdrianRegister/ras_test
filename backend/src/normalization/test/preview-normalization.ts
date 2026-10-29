@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
-import { readCsv } from '../../../src/import/csv-reader.js';
-import { normalizeCsvRow } from '../src/normalize-csv-row.js';
+import { readCsv } from '../../import/csv-reader.ts';
+import { normalizeCsvRow } from '../normalize-csv-row.ts';
 
 const csvPath = fileURLToPath(new URL('../../../data/clientes_antiguos.csv', import.meta.url));
 

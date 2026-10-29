@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeDate } from '../src/date.js';
+import { normalizeDate } from '../date.js';
 
 describe('normalizeDate', () => {
   it('normalizes a date in DD/MM/YYYY format', () => {

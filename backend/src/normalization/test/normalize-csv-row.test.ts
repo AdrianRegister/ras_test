@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeCsvRow } from '../src/normalize-csv-row.js';
-import type { CsvRow } from '../src/types.js';
+import { normalizeCsvRow } from '../normalize-csv-row.js';
+import type { CsvRow } from '../types.js';
 
 function makeRow(overrides: Partial<CsvRow> = {}): CsvRow {
   return {

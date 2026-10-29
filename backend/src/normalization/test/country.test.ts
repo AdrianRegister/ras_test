@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inferCountryCode, normalizeCountry } from '../src/country.js';
+import { inferCountryCode, normalizeCountry } from '../country.js';
 
 describe('normalizeCountry', () => {
   it.each([

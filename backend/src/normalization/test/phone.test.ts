@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizePhone } from '../src/phone.js';
+import { normalizePhone } from '../phone.js';
 
 describe('normalizePhone', () => {
   it('normalizes a valid Spanish phone number', () => {

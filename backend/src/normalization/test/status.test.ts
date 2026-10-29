@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeStatus } from '../src/status.js';
+import { normalizeStatus } from '../status.js';
 
 describe('normalizeStatus', () => {
   it.each([

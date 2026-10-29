@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeMoney } from '../src/money.js';
+import { normalizeMoney } from '../money.js';
 
 describe('normalizeMoney', () => {
   it('normalizes an integer amount', () => {

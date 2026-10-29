@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanText, stripDiacritics } from '../src/text.js';
+import { cleanText, stripDiacritics } from '../text.js';
 
 describe('cleanText', () => {
   it('trims leading and trailing whitespace', () => {

@@ -1,0 +1,11 @@
+Mode: dry-run
+Source file: clientes_antiguos.csv
+Started at: 2026-10-29T12:08:45.758Z
+Finished at: 2026-10-29T12:08:45.786Z
+Total rows: 18
+Ready rows: 0
+Rows requiring review: 13
+Rejected rows: 1
+Duplicate rows: 1
+Warnings: 6
+Errors: 4

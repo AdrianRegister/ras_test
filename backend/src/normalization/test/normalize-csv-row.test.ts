@@ -105,7 +105,7 @@ describe('normalizeCsvRow', () => {
       expect.objectContaining({
         field: 'fecha_alta',
         code: 'INVALID_CREATION_DATE',
-        severity: 'error',
+        severity: 'warning',
       }),
     );
   });

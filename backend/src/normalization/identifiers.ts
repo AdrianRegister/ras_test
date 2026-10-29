@@ -6,7 +6,9 @@ import { cleanText } from './text.js';
  * Does not attempt to validate or repair the CIF.
  */
 export function normalizeCif(value: unknown): string | null {
-  const cif = cleanText(value).toUpperCase();
+  const cif = cleanText(value)
+    .toUpperCase()
+    .replace(/[\s-]+/g, '');
 
   return cif || null;
 }

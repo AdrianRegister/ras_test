@@ -6,8 +6,8 @@ describe('normalizeCif', () => {
     expect(normalizeCif('  b12345678  ')).toBe('B12345678');
   });
 
-  it('preserves internal characters without inventing a value', () => {
-    expect(normalizeCif('x-123')).toBe('X-123');
+  it('removes hyphens from CIF', () => {
+    expect(normalizeCif('x-123')).toBe('X123');
   });
 
   it('returns null for empty values', () => {

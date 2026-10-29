@@ -105,7 +105,7 @@ export function normalizeCsvRow(rowNumber: number, row: CsvRow): NormalizedClien
         rowNumber,
         'fecha_alta',
         'INVALID_CREATION_DATE',
-        'error',
+        'warning',
         'Client creation date is invalid.',
         row.fecha_alta,
       ),

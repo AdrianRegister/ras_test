@@ -380,7 +380,19 @@ Las pruebas existentes utilizan Vitest y Supertest, con la base de datos simulad
 
 - **Docker Compose:** utilizado para coordinar el arranque y la configuración del frontend, backend y base de datos. Cada servicio se ejecuta en su propio contenedor y se comunica con los demás a través de la red interna de Docker. Esto facilita reproducir el entorno de desarrollo o despliegue, reduce las dependencias del equipo anfitrión y simplifica la puesta en marcha del proyecto.
 
-- **Migraciones SQL:** permiten evolucionar el esquema de PostgreSQL de forma controlada y reproducible. Los cambios en la estructura de la base de datos se aplican mediante scripts versionados, evitando depender de la eliminación y recreación de la base de datos para incorporar nuevas funcionalidades o modificaciones.
+- **Librerías especializadas:** se han elegido librerías específicas para resolver tareas de normalización y validación, evitando implementar manualmente funcionalidades complejas o propensas a errores:
+
+  **Day.js:** para la normalización y validación de fechas. Su tamaño reducido y su API sencilla permiten trabajar con distintos formatos de entrada. Mediante el plugin CustomParseFormat y el análisis estricto, se rechazan fechas inexistentes o inválidas en lugar de interpretarlas automáticamente.
+
+  **libphonenumber-js:** para analizar y validar números de teléfono teniendo en cuenta los formatos internacionales y los códigos de país. También permite normalizarlos al formato internacional E.164, conservando la información necesaria para interpretar correctamente los prefijos.
+
+  **@internationalized/number:** para interpretar importes con distintos formatos regionales, especialmente separadores decimales y de miles habituales en España y Europa. Evita depender de conversiones numéricas genéricas que podrían interpretar incorrectamente valores como 1.875,60.
+
+  **csv:** para leer el fichero CSV respetando su estructura, incluyendo separadores, campos entrecomillados y caracteres escapados. Se ha preferido una librería específica frente a implementar un parser propio, reduciendo el riesgo de errores en la lectura.
+
+  **Zod:** para validar y transformar datos en tiempo de ejecución, especialmente en los límites de entrada de la aplicación. También permite inferir tipos TypeScript a partir de los esquemas, reduciendo la duplicación entre validaciones y definiciones de tipos.
+
+  Para transformaciones más específicas, como la normalización de nombres de empresa, CIF, correos electrónicos, países y estados, se utilizan funciones propias adaptadas a las reglas del proyecto.
 
 - **Validación y tipado:** TypeScript proporciona contratos de datos y comprobaciones estáticas en el código, mientras que Zod permite validar los datos en tiempo de ejecución, especialmente los recibidos a través de la API. Esta combinación ayuda a detectar entradas incorrectas antes de que lleguen a la lógica de negocio o a la base de datos.
 
@@ -400,7 +412,7 @@ Las pruebas existentes utilizan Vitest y Supertest, con la base de datos simulad
 
 - **Operación e infraestructura:** incorporar logging estructurado, monitorización y copias de seguridad automatizadas. Como posible evolución, la base de datos podría alojarse en un servicio gestionado en la nube, como **AWS RDS**, delegando tareas operativas como mantenimiento, actualizaciones y gestión de copias de seguridad al proveedor.
 
-- **Producción:** sustituir el servidor de desarrollo de Angular por un servidor web adecuado para producción y configurar HTTPS, junto con los ajustes necesarios de despliegue y configuración de los distintos servicios.
+- **Producción:** sustituir los servidores de desarrollo de Angular y Express por servidores web adecuados para producción y configurar HTTPS, junto con los ajustes necesarios de despliegue y configuración de los distintos servicios. Esto se podría hacer a través de servicios de hosting gestionado, como **Vercel** / **cloudflare**, o en la nube con **AWS Amplify** / **AWS Fargate**.
 
 ## Apéndice: Normalización e importación de datos CSV
 

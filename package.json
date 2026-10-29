@@ -1,0 +1,16 @@
+{
+  "name": "ras-test",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  },
+  "scripts": {
+    "build:shared": "npm run build --workspace=@clientes/shared",
+    "test": "npm run test --workspaces --if-present"
+  }
+}

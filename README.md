@@ -372,8 +372,6 @@ Las pruebas existentes utilizan Vitest y Supertest, con la base de datos simulad
 
 ## 7. Decisiones técnicas
 
-## 7. Decisiones técnicas
-
 - **Angular:** elegido para desarrollar la interfaz de usuario como una aplicación de página única (SPA). La elección responde principalmente a la familiaridad previa con el framework, lo que permite aprovechar conocimientos existentes y acelerar el desarrollo. Además, ofrece una estructura clara para organizar componentes, servicios, rutas y formularios, facilitando el mantenimiento de la aplicación.
 
 - **Express y TypeScript:** Express se utiliza para implementar la API REST y la lógica del servidor. Se ha priorizado por su sencillez, flexibilidad y bajo overhead frente a alternativas más estructuradas como NestJS. Esto permite mantener una arquitectura ligera, sin introducir capas de abstracción o convenciones adicionales que no resultan necesarias para el alcance del proyecto. TypeScript aporta tipado estático, mejor autocompletado y detección temprana de errores durante el desarrollo.

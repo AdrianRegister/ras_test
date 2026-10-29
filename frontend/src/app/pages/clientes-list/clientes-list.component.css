@@ -1,0 +1,36 @@
+.section-title {
+  margin-bottom: 0;
+}
+
+.table th:last-child {
+  width: 150px;
+}
+
+.table td:first-child {
+  min-width: 200px;
+}
+
+.table td:last-child {
+  white-space: nowrap;
+}
+
+.search-bar {
+  position: relative;
+  max-width: 520px;
+  margin-bottom: 1.25rem;
+}
+
+.search-input {
+  width: 100%;
+  padding-left: 2.5rem;
+}
+
+.search-icon {
+  position: absolute;
+  top: 50%;
+  left: 0.85rem;
+  transform: translateY(-50%);
+  color: var(--color-text-muted, #6b7280);
+  font-size: 1.25rem;
+  pointer-events: none;
+}

@@ -13,6 +13,7 @@
   "dependencies": {
     "@clientes/shared": "1.0.0",
     "@internationalized/number": "^3.6.9",
+    "cors": "^2.8.6",
     "csv": "^6.6.4",
     "dayjs": "^1.11.23",
     "dotenv": "^18.0.9",
@@ -22,6 +23,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.5",
     "@types/pg": "^8.23.1",

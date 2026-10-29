@@ -44,8 +44,9 @@ La aplicación estará disponible en:
 Para consultar los registros:
 
 ```powershell
-docker compose logs --tail 50 backend
-docker compose logs --tail 50 postgres
+docker compose logs --tail 50 internal-app-db
+docker compose logs --tail 50 internal-app-api
+docker compose logs --tail 50 internal-app-web
 ```
 
 ### Inicialización de la base de datos

@@ -1,148 +1,383 @@
-Data model: Separate clients, contacts, invoices and audit history into relational tables.
-Billing calculation: Cumulative billing is the sum of invoice taxable bases, excluding VAT.
-CSV handling: Normalize and validate imported data; do not silently invent missing or ambiguous values.
-Authentication: JWT access tokens only; no refresh tokens. Protect all client data endpoints.
-Audit integrity: Record field-level changes and the authenticated user; commit audit entries consistently with the corresponding changes.
-Testing: Unit-test each developed functionality and provide one command to run the automated suite.
+# Gestión de clientes y facturas
 
-Proposed import policy
-I'll track these as proposed decisions for your separate file:
+Aplicación web para gestionar clientes, contactos, facturas y su información asociada. Incluye frontend Angular, API REST con Express y base de datos PostgreSQL.
 
-- Normalize whitespace, capitalization where appropriate, dates, country names, VAT rates and monetary formats.
-- Use a reliable company identifier, particularly the CIF, to match existing customers. Do not merge records solely because their names look similar.
-- Preserve multiple contacts for one company where supported by the data.
-- Reject or quarantine invalid invoices and ambiguous records for review rather than inventing corrections.
-- Detect duplicate invoice numbers and avoid importing duplicates.
-- Keep an import report describing accepted records, normalized values, rejected records and reasons.
-- Calculate invoice totals from the taxable base and VAT, with an explicit rounding policy.
+## 1. Requisitos
 
-### Additional confirmed decisions — data normalization
+- Docker Desktop con Docker Compose.
+- Git, si se clona el repositorio.
 
-- **Countries:** Create a `paises` table with a database ID, ISO 3166-1 alpha-2 country code and country name. Reference countries from `clientes` through a foreign key.
-- **Company consolidation:** Assume similar company names in the source CSV are human errors. Consolidate each company into one client record, retaining relevant company fields, all distinct contacts and associated invoices. Document this assumption in the README.
-- **Conflicting company data:** Define deterministic conflict-resolution rules and log unresolved conflicts rather than silently overwriting data.
-- **Phone numbers:** Every stored phone number must include a country calling code. If absent in the source, infer the likely code using the company-name language and contact-email address as indicators. Document this assumption in the README. Flag inconclusive cases for inspection.
-- **Import issue logging:** Write missing, corrupted, invalid and duplicate source-record issues to files under `/logs`. Include the source filename, row number, issue category and explanation.
-- **Invalid records:** Do not silently correct invalid dates, invent missing invoice amounts or discard duplicate evidence. Record the issues in the logs and prevent invalid or duplicate invoices from being counted or inserted more than once.
-- **Docker logging:** Ensure `/logs` is writable by the application and its contents persist across container recreation. Document the logging location and retention approach.
+No es necesario instalar Node.js ni PostgreSQL en el equipo anfitrión para ejecutar la aplicación con Docker.
 
-**Client status normalization:** Create an `estados` lookup table with a unique status name. Store `clientes.estado_id` as a foreign key to `estados.id`, rather than storing status as free text in the clients table. Initial statuses: `Activo` and `Inactivo`. Use the lookup table for API filtering and validation.
+## 2. Arranque desde cero
 
-### Normalization libraries and code structure
+Clonar el repositorio y entrar en su directorio raíz.
 
-- Use Day.js for date normalization, with strict format validation via `CustomParseFormat`.
-- Use Zod for validating and transforming untrusted CSV rows and API inputs.
-- Use libphonenumber-js for parsing, validating and formatting international telephone numbers.
-- Retain the existing `csv` package for CSV parsing.
-- Use small custom functions for monetary normalization, CIF formatting and company-name normalization rather than adding unnecessary dependencies.
-- Do not add validator.js initially; reconsider only if specialized string-validation requirements arise.
-- Keep normalization functions modular, with separate responsibilities and unit tests.
-- Keep CSV parsing, validation, company consolidation, database insertion and issue reporting in separate modules.
-- Normalization must report ambiguity and data-quality issues instead of silently inventing values.
-- The CSV source is UTF-8 and must not be rewritten merely to fix display encoding.
-- Import validation must distinguish client errors from invoice errors.
-- Duplicate invoices must not be imported twice.
-- Invalid or incomplete records must be reported, not silently corrected or discarded.
+### Configurar variables de entorno
 
-### Shared TypeScript contracts and validation
+Copiar `.env.example` a `.env`:
 
-- Use an npm workspaces monorepo containing `backend`, `frontend`, and `packages/shared`.
-- Maintain shared API types and Zod validation schemas in `packages/shared`; do not duplicate API contracts in the backend and frontend.
-- Infer TypeScript types from Zod schemas wherever practical.
-- Keep database models separate from public API response types.
-- Keep normalization logic modular, with unit tests for each function.
-- Use Vitest as the unit testing framework.
-- Preserve the existing strict TypeScript configuration where possible; adjust build settings when the workspace is established.
-- Ensure the final Docker Compose setup builds the complete workspace from a fresh clone.
+```powershell
+Copy-Item .env.example .env
+```
 
-### Shared API contracts
+Revisar las variables de conexión a PostgreSQL. Los valores de ejemplo son exclusivamente para desarrollo local; deben sustituirse por credenciales adecuadas para cualquier entorno compartido.
 
-- Shared schemas and TypeScript types live in `packages/shared` and are exported through `@clientes/shared`.
-- Zod schemas provide runtime validation and inferred TypeScript types.
-- API responses use camelCase; PostgreSQL columns retain snake_case.
-- Monetary values are represented as decimal strings to avoid floating-point precision loss.
-- Client detail responses include contacts, invoices and cumulative taxable billing, excluding VAT.
-- Client list responses use pagination, with a default page size of 20 and a maximum of 100.
-- Audit history records the entity, field, previous and new values, actor and timestamp.
-- API errors use a consistent structure with a machine-readable code and message.
-- `PUT` replaces the editable client fields; `PATCH` may be introduced later.
-- Client and contact IDs currently use numeric API types. Confirm that PostgreSQL `BIGINT` IDs remain within JavaScript's safe integer range, or switch to string IDs before implementing endpoints.
+### Iniciar los servicios
 
-## Decision: Client matching and missing CIFs
+```powershell
+docker compose up --build -d
+```
 
-**Status:** Accepted
+Comprobar el estado:
 
-### 1. Matching clients with a missing CIF
+```powershell
+docker compose ps
+docker compose logs --tail 50 backend
+```
 
-- If a CSV row has no CIF, match it to an existing client using an exact match on `nombre_normalizado`.
-- If exactly one client matches, reuse that client rather than creating a duplicate.
-- Record a warning that the source row has no CIF.
-- Never invent or infer a missing CIF.
-- If no exact normalized-name match exists, treat the row as a potential new client, subject to the normal validation rules.
+La aplicación estará disponible en:
 
-### 2. Similar company names with different legal identifiers
+- **Frontend:** http://localhost:4200
+- **API:** http://localhost:3000
 
-- Similar company names alone are not sufficient grounds for merging clients.
-- Different non-empty CIFs identify separate client records, even when their company names are similar.
-- Do not use fuzzy matching or automatic name-similarity matching to merge clients.
-- Preserve legal suffixes such as `SL`, `SA`, `SLP` and `SRL` during normalization so distinct legal entities are not merged merely because their base names are similar.
+### Inicialización de la base de datos
 
-### 3. Conflicting identifiers
+En una instalación nueva, Docker inicializa PostgreSQL utilizando las variables `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB` del archivo `.env`. No es necesario crear manualmente el usuario de PostgreSQL.
 
-- If a row has a CIF that conflicts with the CIF of a client matched by normalized name, do not merge automatically.
-- Record an import incident for manual review.
-- Keep the existing client data unchanged until the conflict is resolved.
+A continuación, el contenedor de PostgreSQL importa `backend/queries/snapshot/ras_test_snapshot.sql` y el backend ejecuta automáticamente:
 
-### 4. Database integrity
+1. La migración que añade `session_token` a `usuarios`.
+2. La creación del administrador, si todavía no existe.
 
-- Use `clientes.nombre_normalizado` for exact normalized-name matching.
-- Respect the unique constraint on `nombre_normalizado`.
-- Do not rely on CIF uniqueness enforced by the database, because no such constraint currently exists.
-- Match invoices using the client relationship and invoice number, respecting the unique constraint on `(cliente_id, numero_factura)`.
+**Credenciales iniciales de la aplicación:**
 
-### Rationale
+- Usuario: `admin`
+- Contraseña: `admin123`
 
-These rules allow missing CIFs and formatting variations to be handled without inventing data or merging unrelated legal entities. Ambiguous or conflicting records must be reported rather than silently resolved.
+Cambiar estas credenciales antes de utilizar la aplicación en un entorno real.
 
-## Decision: CSV import, dry runs and database logging
+> La importación del snapshot solo se ejecuta cuando PostgreSQL inicializa un volumen vacío. Si ya existe un volumen, Docker conserva sus datos y no vuelve a importar el snapshot. No se debe eliminar un volumen que contenga datos que se quieran conservar.
 
-**Status:** Accepted
+## 3. Documentación de la API
 
-### 1. Two import modes
+La API utiliza el puerto `3000`. Las rutas protegidas requieren autenticación mediante la cookie de sesión.
 
-- **Dry run:** reads and validates the CSV, applies normalization and matching rules, identifies duplicates and reports errors and warnings. It must not modify business data in the database.
-- **Import:** inserts valid clients, contacts and invoices into PostgreSQL, respecting all validation, matching and duplicate-handling rules.
-- Both modes must produce a clear summary of their results.
+- **URL base:** `http://localhost:3000`
+- **Formato de intercambio:** JSON.
 
-### 2. Database output logs
+### Endpoints disponibles
 
-- Every dry-run execution must create an output log under `logs/db/`.
-- Every execution that performs database inserts must also create an output log under `logs/db/`.
-- Logs must be separate per execution, with filenames that distinguish the execution type and include a timestamp.
-- Logs should record the source filename, execution mode, start and end times, row counts, imported records, rejected records, duplicates, warnings and errors.
-- Import logs must distinguish between successful inserts and records skipped or rejected.
-- Logs must not contain database passwords, connection strings with credentials, or other secrets.
-- The application must report a logging failure clearly rather than silently continuing without the required audit log.
+| Método | Endpoint                      | Descripción                                                      |
+| ------ | ----------------------------- | ---------------------------------------------------------------- |
+| GET    | `/api/health`                 | Comprobar el estado de la API y la conexión con la base de datos |
+| GET    | `/api/clientes`               | Consultar clientes con paginación, búsqueda y filtros            |
+| GET    | `/api/clientes/:id`           | Consultar los detalles de un cliente                             |
+| GET    | `/api/clientes/:id/historico` | Consultar el historial de cambios de un cliente                  |
+| POST   | `/api/clientes`               | Crear un cliente                                                 |
+| PUT    | `/api/clientes/:id`           | Actualizar un cliente                                            |
+| DELETE | `/api/clientes/:id`           | Eliminar un cliente mediante borrado lógico                      |
 
-### 3. Dry-run safety
+### Comprobar el estado de la API
 
-- A dry run must not insert, update or delete business records.
-- A dry run must not create misleading import-history records in PostgreSQL.
-- The dry-run output should make it clear which clients and invoices would be imported and which would be skipped or require review.
+#### `GET /api/health`
 
-### 4. Import safety
+Comprueba que la API está funcionando y puede conectarse a PostgreSQL.
 
-- Validate records before inserting them.
-- Use transactions so a failed database operation does not leave partially written related records.
-- Prevent duplicate clients and invoices using the documented matching rules and database constraints.
-- Record import history and incidents for actual import executions.
+**Respuesta correcta — `200 OK`**
 
-### 5. Log content and privacy
+```json
+{
+  "status": "ok",
+  "database": "connected"
+}
+```
 
-- Logs contain operation details and results, not SQL statements.
-- Each entry should identify the operation, affected entity type, outcome and relevant record counts.
-- Include validation errors, warnings, duplicate detections and database operation failures.
-- Avoid logging unnecessary personal data, including contact names, email addresses and phone numbers.
-- Never log credentials, passwords or connection strings containing secrets.
-- Use timestamps to correlate operations within an execution.
-- Logs must distinguish successful operations, skipped records, rejected records and failures.
+Si la base de datos no está disponible, el endpoint devuelve `503 Service Unavailable`.
+
+### Listar clientes
+
+#### `GET /api/clientes`
+
+Devuelve un listado paginado de clientes. Permite buscar por diferentes campos y filtrar los resultados.
+
+**Parámetros de consulta**
+
+| Parámetro   | Obligatorio | Descripción                            |
+| ----------- | ----------- | -------------------------------------- |
+| `page`      | No          | Número de página                       |
+| `limit`     | No          | Número máximo de resultados por página |
+| `search`    | No          | Término de búsqueda                    |
+| `estado`    | No          | Filtrar por estado del cliente         |
+| `pais`      | No          | Filtrar por país                       |
+| `comercial` | No          | Filtrar por comercial asignado         |
+
+**Ejemplo de petición**
+
+```http
+GET /api/clientes?page=1&limit=10&search=Barcelona&estado=Activo
+```
+
+**Respuesta — `200 OK`**
+
+Devuelve los clientes que coinciden con los parámetros indicados, junto con los datos y la información de paginación definidos por la implementación.
+
+### Consultar un cliente
+
+#### `GET /api/clientes/:id`
+
+Devuelve los datos de un cliente concreto, incluidos sus contactos, facturas y el importe total facturado.
+
+**Parámetro de ruta**
+
+- `id`: identificador numérico positivo del cliente.
+
+**Ejemplo de petición**
+
+```http
+GET /api/clientes/1
+```
+
+**Respuestas posibles**
+
+- `200 OK`: cliente encontrado.
+- `400 Bad Request`: identificador no válido.
+- `404 Not Found`: cliente no encontrado o no disponible.
+- `500 Internal Server Error`: error inesperado del servidor.
+
+### Crear un cliente
+
+#### `POST /api/clientes`
+
+Crea un nuevo cliente después de validar los datos recibidos.
+
+**Campos obligatorios**
+
+| Campo       | Tipo    | Descripción                          |
+| ----------- | ------- | ------------------------------------ |
+| `empresa`   | String  | Nombre o razón social                |
+| `cif`       | String  | CIF de la empresa                    |
+| `pais_id`   | Integer | Identificador de un país existente   |
+| `estado_id` | Integer | Identificador de un estado existente |
+
+**Campos opcionales**
+
+| Campo           | Tipo    | Descripción                          |
+| --------------- | ------- | ------------------------------------ |
+| `direccion`     | String  | Dirección postal                     |
+| `codigo_postal` | String  | Código postal                        |
+| `ciudad`        | String  | Ciudad                               |
+| `comercial_id`  | Integer | Identificador del comercial asignado |
+| `fecha_alta`    | Fecha   | Fecha de alta del cliente            |
+
+**Ejemplo de petición**
+
+```http
+POST /api/clientes
+Content-Type: application/json
+```
+
+```json
+{
+  "empresa": "Empresa Ejemplo S.L.",
+  "cif": "B12345678",
+  "pais_id": 1,
+  "estado_id": 1,
+  "direccion": "Calle Mayor, 10",
+  "codigo_postal": "08001",
+  "ciudad": "Barcelona",
+  "comercial_id": 1,
+  "fecha_alta": "2026-10-29"
+}
+```
+
+**Respuestas posibles**
+
+- `201 Created`: cliente creado correctamente.
+- `400 Bad Request`: datos no válidos.
+- `500 Internal Server Error`: error inesperado del servidor.
+
+### Actualizar un cliente
+
+#### `PUT /api/clientes/:id`
+
+Actualiza los datos de un cliente existente. La petición valida los datos y registra los cambios en el historial dentro de una transacción.
+
+**Parámetro de ruta**
+
+- `id`: identificador numérico positivo del cliente.
+
+**Cuerpo de la petición**
+
+Acepta los campos definidos para la creación del cliente, sujetos a las reglas de validación de actualización.
+
+**Ejemplo de petición**
+
+```http
+PUT /api/clientes/1
+Content-Type: application/json
+```
+
+```json
+{
+  "empresa": "Empresa Ejemplo Actualizada S.L.",
+  "cif": "B12345678",
+  "pais_id": 1,
+  "estado_id": 1,
+  "ciudad": "Girona"
+}
+```
+
+**Respuestas posibles**
+
+- `200 OK`: cliente actualizado correctamente.
+- `400 Bad Request`: identificador o datos no válidos.
+- `404 Not Found`: cliente no encontrado.
+- `500 Internal Server Error`: error inesperado del servidor.
+
+### Consultar el historial de cambios
+
+#### `GET /api/clientes/:id/historico`
+
+Devuelve el historial de cambios registrado para un cliente.
+
+Cada registro incluye, entre otros datos:
+
+- Identificador del registro.
+- Tipo e identificador de la entidad afectada.
+- Campo modificado.
+- Valor anterior y valor nuevo.
+- Usuario responsable, cuando esté disponible.
+- Tipo de actor que realizó el cambio.
+- Fecha y hora del cambio.
+
+**Ejemplo de petición**
+
+```http
+GET /api/clientes/1/historico
+```
+
+**Respuestas posibles**
+
+- `200 OK`: devuelve una lista de registros; puede estar vacía si no hay cambios.
+- `400 Bad Request`: identificador no válido.
+- `500 Internal Server Error`: error inesperado del servidor.
+
+### Eliminar un cliente
+
+#### `DELETE /api/clientes/:id`
+
+Elimina un cliente mediante **borrado lógico** (_soft delete_). El registro no se borra físicamente de PostgreSQL: se actualizan los campos `deleted_at` y `updated_at`.
+
+Este mecanismo permite conservar la información y las relaciones existentes, así como mantener la trazabilidad de los datos.
+
+**Ejemplo de petición**
+
+```http
+DELETE /api/clientes/10
+```
+
+**Respuesta correcta — `200 OK`**
+
+```json
+{
+  "message": "Cliente eliminado correctamente"
+}
+```
+
+**Respuestas posibles**
+
+- `200 OK`: cliente eliminado correctamente.
+- `400 Bad Request`: identificador no válido.
+- `404 Not Found`: cliente inexistente o ya eliminado.
+- `500 Internal Server Error`: error inesperado del servidor.
+
+Los clientes eliminados lógicamente dejan de aparecer en las consultas que filtran por `deleted_at IS NULL`.
+
+### Códigos HTTP utilizados
+
+| Código                      | Significado                                 |
+| --------------------------- | ------------------------------------------- |
+| `200 OK`                    | Operación completada correctamente          |
+| `201 Created`               | Recurso creado correctamente                |
+| `400 Bad Request`           | Identificador o datos de entrada no válidos |
+| `404 Not Found`             | Recurso no encontrado o no disponible       |
+| `500 Internal Server Error` | Error inesperado del servidor               |
+| `503 Service Unavailable`   | Servicio o dependencia no disponible        |
+
+## 4. Comprobar el acceso sin autenticar
+
+En PowerShell:
+
+```powershell
+Invoke-WebRequest http://localhost:3000/api/clientes
+```
+
+La petición debe devolver `401 Unauthorized` si no existe una sesión válida.
+
+## 5. Probar el flujo de autenticación
+
+En PowerShell, iniciar sesión y guardar la cookie:
+
+```powershell
+$body = @{
+    nombre   = "admin"
+    password = "admin123"
+} | ConvertTo-Json
+
+Invoke-WebRequest `
+    -Uri http://localhost:3000/api/users/login `
+    -Method POST `
+    -ContentType "application/json" `
+    -Body $body `
+    -SessionVariable session
+```
+
+Consultar los clientes utilizando la sesión autenticada:
+
+```powershell
+Invoke-WebRequest `
+    -Uri http://localhost:3000/api/clientes `
+    -WebSession $session
+```
+
+Cerrar sesión:
+
+```powershell
+Invoke-WebRequest `
+    -Uri http://localhost:3000/api/users/logout `
+    -Method POST `
+    -WebSession $session
+```
+
+La cookie HttpOnly se conserva en la sesión de PowerShell y se envía automáticamente en las peticiones siguientes.
+
+## 6. Ejecutar las pruebas automatizadas
+
+Desde la raíz del proyecto:
+
+```powershell
+npm test
+```
+
+Las pruebas existentes utilizan Vitest y Supertest, con la base de datos simulada para probar el comportamiento de la API.
+
+## 7. Decisiones técnicas
+
+- **Angular:** interfaz de usuario y aplicación de página única.
+- **Express y TypeScript:** API REST y lógica de servidor.
+- **PostgreSQL:** persistencia relacional para clientes, contactos, facturas y entidades asociadas.
+- **Docker Compose:** arranque coordinado de frontend, backend y base de datos.
+- **Migraciones SQL:** evolución controlada del esquema sin depender de recrear la base de datos.
+- **Validación y tipado:** TypeScript y Zod para mejorar la consistencia de los datos.
+- **Contraseñas:** almacenamiento mediante hash derivado con scrypt, no en texto plano.
+- **Sesiones:** cookie HttpOnly y token UUID almacenado en la base de datos.
+
+## 8. Mejoras pendientes
+
+- **Autenticación y seguridad:** sustituir el mecanismo de sesión actual por una implementación robusta de JWT, con validación rigurosa, expiración, renovación y revocación cuando corresponda. Revisar también la gestión de secretos, cookies, CORS y protección frente a ataques de fuerza bruta antes de producción.
+- **Autorización:** definir roles y permisos si se incorporan distintos tipos de usuario.
+- **Pruebas:** ampliar la cobertura de integración y añadir pruebas que utilicen una base de datos real de prueba.
+- **Migraciones:** incorporar un sistema de versionado y ejecución de migraciones más estructurado a medida que crezca el esquema.
+- **Operación:** añadir logging estructurado, monitorización y copias de seguridad automatizadas.
+- **Producción:** servir el frontend mediante un servidor web de producción y configurar HTTPS, en lugar de utilizar el servidor de desarrollo de Angular.

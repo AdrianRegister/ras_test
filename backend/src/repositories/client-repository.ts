@@ -18,9 +18,11 @@ export async function listClients(
        c.empresa,
        c.cif,
        c.ciudad,
-       p.nombre AS pais,
-       e.nombre AS estado,
-       co.nombre AS comercial
+       p.codigo AS "paisCodigo",
+       p.nombre AS "paisNombre",
+       co.id AS "comercialId",
+       co.nombre AS "comercialNombre",
+       e.nombre AS estado
      FROM clientes c
      JOIN paises p ON p.id = c.pais_id
      JOIN estados e ON e.id = c.estado_id
@@ -78,12 +80,12 @@ export async function getClientById(id: string) {
        c.empresa,
        c.cif,
        c.direccion,
-       c.codigo_postal,
+       c.codigo_postal as "codigoPostal",
        c.ciudad,
-       p.nombre AS pais,
+       p.nombre AS "paisNombre",
        e.nombre AS estado,
-       co.nombre AS comercial,
-       c.fecha_alta
+       co.nombre AS "comercialNombre",
+       c.fecha_alta as "fechaAlta"
      FROM clientes c
      JOIN paises p ON p.id = c.pais_id
      JOIN estados e ON e.id = c.estado_id
@@ -107,11 +109,11 @@ export async function getClientById(id: string) {
     ),
     pool.query(
       `SELECT
-         numero_factura,
-         fecha_factura,
-         base_imponible,
-         iva_porcentaje,
-         importe_iva,
+         numero_factura as "numeroFactura",
+         fecha_factura as "fechaFactura",
+         base_imponible as "baseImponible",
+         iva_porcentaje as "ivaPorcentaje",
+         importe_iva as "importeIva",
          total
        FROM facturas
        WHERE cliente_id = $1
@@ -119,7 +121,7 @@ export async function getClientById(id: string) {
       [id],
     ),
     pool.query(
-      `SELECT COALESCE(SUM(total), 0) AS facturacion_acumulada
+      `SELECT COALESCE(SUM(total), 0) AS "facturacionAcumulada"
        FROM facturas
        WHERE cliente_id = $1`,
       [id],
@@ -130,7 +132,7 @@ export async function getClientById(id: string) {
     ...clientResult.rows[0],
     contactos: contactsResult.rows,
     facturas: invoicesResult.rows,
-    facturacion_acumulada: billingResult.rows[0].facturacion_acumulada,
+    facturacionAcumulada: billingResult.rows[0].facturacionAcumulada,
   };
 }
 

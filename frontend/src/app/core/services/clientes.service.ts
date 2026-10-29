@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Cliente } from '@clientes/shared';
+import { Cliente, ClienteDetalle, HistoricoCambio } from '@clientes/shared';
 
 export interface ClientesResponse {
   items: Cliente[];
@@ -37,6 +37,14 @@ export class ClientesService {
         comercial,
       },
     });
+  }
+
+  getHistorico(id: number) {
+    return this.http.get<HistoricoCambio[]>(`${this.apiUrl}/${id}/historico`);
+  }
+
+  getCliente(id: number) {
+    return this.http.get<ClienteDetalle>(`${this.apiUrl}/${id}`);
   }
 
   getPaises() {

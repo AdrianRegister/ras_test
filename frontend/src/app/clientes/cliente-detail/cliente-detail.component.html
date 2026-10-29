@@ -1,0 +1,157 @@
+<div class="page-container">
+  <div class="page-header">
+    <div>
+      <a routerLink="/clientes" class="back-link"> ← Volver a clientes </a>
+      <h1 class="page-title">Ficha del cliente</h1>
+      <p class="page-description">Datos generales, contactos y facturación.</p>
+    </div>
+
+    @if (cliente) {
+      <a class="btn btn-primary" [routerLink]="['/clientes', cliente.id, 'editar']">
+        Editar cliente
+      </a>
+    }
+  </div>
+
+  @if (cargando) {
+    <div class="card empty-state">
+      <div class="spinner"></div>
+      <p>Cargando ficha del cliente...</p>
+    </div>
+  } @else if (error) {
+    <div class="card empty-state">
+      <p>{{ error }}</p>
+      <a routerLink="/clientes" class="btn btn-secondary"> Volver al listado </a>
+    </div>
+  } @else if (cliente) {
+    <section class="card">
+      <div class="card-header">
+        <h2>Datos generales</h2>
+        <span class="badge" [class.badge-success]="cliente.estado === 'Activo'">
+          {{ cliente.estado }}
+        </span>
+      </div>
+
+      <div class="card-body">
+        <div class="details-grid">
+          <div>
+            <span class="detail-label">Empresa</span>
+            <p>{{ cliente.empresa }}</p>
+          </div>
+          <div>
+            <span class="detail-label">CIF</span>
+            <p>{{ cliente.cif || '—' }}</p>
+          </div>
+          <div>
+            <span class="detail-label">Dirección</span>
+            <p>{{ cliente.direccion || '—' }}</p>
+          </div>
+          <div>
+            <span class="detail-label">Código postal</span>
+            <p>{{ cliente.codigoPostal || '—' }}</p>
+          </div>
+          <div>
+            <span class="detail-label">Ciudad</span>
+            <p>{{ cliente.ciudad }}</p>
+          </div>
+          <div>
+            <span class="detail-label">País</span>
+            <p>{{ cliente.paisNombre }}</p>
+          </div>
+          <div>
+            <span class="detail-label">Comercial asignado</span>
+            <p>{{ cliente.comercialNombre || 'Sin asignar' }}</p>
+          </div>
+          <div>
+            <span class="detail-label">Fecha de alta</span>
+            <p>{{ cliente.fechaAlta | date: 'dd/MM/yyyy' }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <h2>Contactos</h2>
+        <span class="badge">{{ cliente.contactos.length }}</span>
+      </div>
+
+      <div class="card-body">
+        @if (cliente.contactos.length > 0) {
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Correo electrónico</th>
+                  <th>Teléfono</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (contacto of cliente.contactos; track contacto.id) {
+                  <tr>
+                    <td>{{ contacto.nombre }}</td>
+                    <td>{{ contacto.email || '—' }}</td>
+                    <td>{{ contacto.telefono || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="muted-text">No hay contactos registrados.</p>
+        }
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <h2>Facturas</h2>
+        <span class="badge">{{ cliente.facturas.length }}</span>
+      </div>
+
+      <div class="card-body">
+        @if (cliente.facturas.length > 0) {
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Número</th>
+                  <th>Fecha</th>
+                  <th>Base imponible</th>
+                  <th>IVA (%)</th>
+                  <th>Importe IVA</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (factura of cliente.facturas; track factura.id) {
+                  <tr>
+                    <td>{{ factura.numeroFactura }}</td>
+                    <td>{{ factura.fechaFactura | date: 'dd/MM/yyyy' }}</td>
+                    <td>{{ factura.baseImponible }} €</td>
+                    <td>{{ factura.ivaPorcentaje }} %</td>
+                    <td>{{ factura.importeIva }} €</td>
+                    <td>
+                      <strong>{{ factura.total }} €</strong>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="muted-text">No hay facturas registradas.</p>
+        }
+      </div>
+    </section>
+
+    <section class="billing-card">
+      <div>
+        <span>Facturación acumulada</span>
+        <p class="billing-description">Suma total de las facturas registradas</p>
+      </div>
+      <strong>{{ cliente.facturacionAcumulada }} €</strong>
+    </section>
+  }
+</div>

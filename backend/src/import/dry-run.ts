@@ -2,6 +2,7 @@ import path from 'node:path';
 import { readCsv } from './csv-reader.js';
 import { classifyImportRow } from './classify-import-row.js';
 import { writeImportLog } from './import-logger.js';
+import { matchCsvClients } from './match-csv-clients.js';
 import { normalizeCsvRow } from '../normalization/normalize-csv-row.ts';
 import type { ImportRowResult } from './import-types.js';
 
@@ -11,10 +12,34 @@ export async function runDryRun(sourceFile: string) {
   const csvRows = await readCsv(absolutePath);
 
   const rows: ImportRowResult[] = csvRows.map((csvRow, index) => {
-    const normalized = normalizeCsvRow(index + 2, csvRow);
-    return classifyImportRow(index + 2, normalized);
+    const rowNumber = index + 2;
+    const normalized = normalizeCsvRow(rowNumber, csvRow);
+
+    return classifyImportRow(rowNumber, normalized);
   });
 
+  // Match rows that refer to the same client.
+  const clientMatches = matchCsvClients(rows);
+
+  const matchesByRow = new Map(clientMatches.map((match) => [match.rowNumber, match]));
+
+  for (const row of rows) {
+    const match = matchesByRow.get(row.rowNumber);
+
+    if (!match) continue;
+
+    if (match.status === 'REVIEW_REQUIRED') {
+      row.status = 'REVIEW_REQUIRED';
+
+      if (match.reason) {
+        row.reasons.push(match.reason);
+      }
+    } else if (match.canonicalRowNumber !== row.rowNumber && match.reason) {
+      row.reasons.push(match.reason);
+    }
+  }
+
+  // Detect duplicate invoice numbers for the same canonical CSV client.
   const firstInvoiceRow = new Map<string, number>();
 
   for (const row of rows) {
@@ -22,13 +47,19 @@ export async function runDryRun(sourceFile: string) {
 
     if (!invoiceNumber) continue;
 
-    const firstRow = firstInvoiceRow.get(invoiceNumber);
+    const match = matchesByRow.get(row.rowNumber);
+    const clientKey = match ? String(match.canonicalRowNumber) : String(row.rowNumber);
+
+    const invoiceKey = `${clientKey}:${invoiceNumber}`;
+    const firstRow = firstInvoiceRow.get(invoiceKey);
 
     if (firstRow !== undefined) {
       row.status = 'DUPLICATE';
-      row.reasons.push(`Invoice ${invoiceNumber} also appears on CSV row ${firstRow}.`);
+      row.reasons.push(
+        `Invoice ${invoiceNumber} for this client also appears on CSV row ${firstRow}.`,
+      );
     } else {
-      firstInvoiceRow.set(invoiceNumber, row.rowNumber);
+      firstInvoiceRow.set(invoiceKey, row.rowNumber);
     }
   }
 
@@ -55,5 +86,10 @@ export async function runDryRun(sourceFile: string) {
 
   const logPath = await writeImportLog('dry-run', summary);
 
-  return { rows, summary, logPath };
+  return {
+    rows,
+    summary,
+    logPath,
+    clientMatches,
+  };
 }

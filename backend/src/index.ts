@@ -3,7 +3,10 @@ import 'dotenv/config';
 
 import { pool } from './db/db.ts';
 
+import clientesRouter from './routes/clientes.js';
+
 const app: Express = express();
+app.use('/api/clientes', clientesRouter);
 
 app.get('/', (req: Request, res: Response) => {
   res.send(`Hello World!`);

@@ -50,7 +50,6 @@ describe('runDryRun', () => {
 
     expect(mocks.readCsv).toHaveBeenCalledOnce();
     expect(mocks.writeImportLog).toHaveBeenCalledOnce();
-
     expect(mocks.writeImportLog).toHaveBeenCalledWith(
       'dry-run',
       expect.objectContaining({
@@ -63,9 +62,10 @@ describe('runDryRun', () => {
     expect(result.rows[0].companyName).toBe('Construcciones Ebro SL');
     expect(result.summary.totalRows).toBe(1);
     expect(result.logPath).toBe('logs/db/dry-run-test.log');
+    expect(result.clientMatches).toHaveLength(1);
   });
 
-  it('marks a repeated invoice number as duplicate', async () => {
+  it('marks a repeated invoice for the same client as duplicate', async () => {
     mocks.readCsv.mockResolvedValue([
       makeCsvRow({ factura: 'F-2026-0115' }),
       makeCsvRow({ factura: 'F-2026-0115' }),
@@ -75,11 +75,34 @@ describe('runDryRun', () => {
 
     expect(result.rows).toHaveLength(2);
     expect(result.rows[1].status).toBe('DUPLICATE');
-    expect(result.rows[1].reasons).toContain('Invoice F-2026-0115 also appears on CSV row 2.');
+    expect(result.rows[1].reasons).toContain(
+      'Invoice F-2026-0115 for this client also appears on CSV row 2.',
+    );
     expect(result.summary.duplicateRows).toBe(1);
   });
 
-  it('does not mark rows with no invoice as duplicates', async () => {
+  it('does not mark the same invoice number as duplicate for different clients', async () => {
+    mocks.readCsv.mockResolvedValue([
+      makeCsvRow({
+        empresa: 'Company Alpha',
+        cif: 'A11111111',
+        factura: 'F-2026-0101',
+      }),
+      makeCsvRow({
+        empresa: 'Company Beta',
+        cif: 'B22222222',
+        factura: 'F-2026-0101',
+      }),
+    ]);
+
+    const result = await runDryRun('clientes_antiguos.csv');
+
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows.every((row) => row.status !== 'DUPLICATE')).toBe(true);
+    expect(result.summary.duplicateRows).toBe(0);
+  });
+
+  it('does not mark rows without invoices as duplicates', async () => {
     mocks.readCsv.mockResolvedValue([
       makeCsvRow({
         factura: '',
@@ -102,7 +125,7 @@ describe('runDryRun', () => {
     expect(result.summary.duplicateRows).toBe(0);
   });
 
-  it('propagates CSV reading errors', async () => {
+  it('propagates CSV reading errors without writing a log', async () => {
     mocks.readCsv.mockRejectedValue(new Error('CSV file not found'));
 
     await expect(runDryRun('missing.csv')).rejects.toThrow('CSV file not found');

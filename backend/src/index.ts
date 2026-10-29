@@ -17,7 +17,16 @@ app.use('/api/clientes', clientesRouter);
 
 app.get('/api/paises', async (_req, res, next) => {
   try {
-    const result = await pool.query('SELECT codigo, nombre FROM paises ORDER BY nombre');
+    const result = await pool.query('SELECT id, codigo, nombre FROM paises ORDER BY nombre');
+    res.json(result.rows);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/estados', async (_req, res, next) => {
+  try {
+    const result = await pool.query('SELECT id, nombre FROM estados');
     res.json(result.rows);
   } catch (error) {
     next(error);

@@ -5,7 +5,7 @@
       <p class="page-description">Consulta y gestiona los clientes registrados.</p>
     </div>
 
-    <button class="btn btn-primary" type="button" disabled>+ Nuevo cliente</button>
+    <a class="btn btn-primary" routerLink="/clientes/nuevo">+ Nuevo cliente </a>
   </header>
 
   <section class="card">
@@ -129,10 +129,7 @@
                     <a class="btn btn-ghost btn-sm" [routerLink]="['/clientes', cliente.id]">
                       Ver
                     </a>
-                    <a
-                      class="btn btn-secondary btn-sm"
-                      [routerLink]="['/clientes', cliente.id, 'editar']"
-                    >
+                    <a class="btn btn-secondary" [routerLink]="['/clientes', cliente.id, 'editar']">
                       Editar
                     </a>
                   </div>

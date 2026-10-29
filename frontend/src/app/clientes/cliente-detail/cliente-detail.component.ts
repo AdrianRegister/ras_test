@@ -3,6 +3,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ClienteDetalle, HistoricoCambio } from '@clientes/shared';
 import { ClientesService } from '../../core/services/clientes.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-cliente-detail',
@@ -12,6 +13,7 @@ import { ClientesService } from '../../core/services/clientes.service';
   styleUrl: './cliente-detail.component.css',
 })
 export class ClienteDetailComponent implements OnInit {
+  private router = new Router();
   private readonly route = inject(ActivatedRoute);
   private readonly clientesService = inject(ClientesService);
 
@@ -50,10 +52,36 @@ export class ClienteDetailComponent implements OnInit {
   private cargarHistorico(id: number): void {
     this.clientesService.getHistorico(id).subscribe({
       next: (historico) => {
-        this.historico = historico;
+        this.historico = [...historico].sort(
+          (a, b) => new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime(),
+        );
       },
       error: (err) => {
         console.error('Error al cargar el histórico:', err);
+      },
+    });
+  }
+
+  eliminarCliente(): void {
+    if (this.cliente === null) {
+      return;
+    }
+
+    const confirmar = window.confirm(
+      `¿Seguro que quieres eliminar el cliente "${this.cliente.empresa}"?`,
+    );
+
+    if (!confirmar) {
+      return;
+    }
+
+    this.clientesService.eliminarCliente(this.cliente.id).subscribe({
+      next: () => {
+        this.router.navigate(['/clientes']);
+      },
+      error: (err) => {
+        console.error('Error al eliminar el cliente:', err);
+        this.error = 'No se ha podido eliminar el cliente.';
       },
     });
   }

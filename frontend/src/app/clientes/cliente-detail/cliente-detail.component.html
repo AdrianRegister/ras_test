@@ -10,6 +10,10 @@
       <a class="btn btn-primary" [routerLink]="['/clientes', cliente.id, 'editar']">
         Editar cliente
       </a>
+
+      <button type="button" class="btn btn-secondary" (click)="eliminarCliente()">
+        Eliminar cliente
+      </button>
     }
   </div>
 
@@ -152,6 +156,49 @@
         <p class="billing-description">Suma total de las facturas registradas</p>
       </div>
       <strong>{{ cliente.facturacionAcumulada }} €</strong>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <h2>Histórico de cambios</h2>
+        <p class="page-description">Registro de modificaciones realizadas en este cliente.</p>
+      </div>
+
+      <div class="card-body">
+        <div *ngIf="historico.length === 0" class="empty-state">
+          No hay cambios registrados para este cliente.
+        </div>
+
+        <div *ngIf="historico.length > 0" class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Entidad</th>
+                <th>Campo</th>
+                <th>Valor anterior</th>
+                <th>Valor nuevo</th>
+                <th>Actor</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr *ngFor="let cambio of historico">
+                <td>
+                  {{ cambio.fechaHora | date: 'dd/MM/yyyy HH:mm' }}
+                </td>
+                <td>
+                  {{ cambio.entidadTipo === 'cliente' ? 'Cliente' : 'Contacto' }}
+                </td>
+                <td>{{ cambio.campo }}</td>
+                <td>{{ cambio.valorAnterior ?? '—' }}</td>
+                <td>{{ cambio.valorNuevo ?? '—' }}</td>
+                <td>{{ cambio.actorTipo }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </section>
   }
 </div>

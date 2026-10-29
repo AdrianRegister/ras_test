@@ -10,6 +10,7 @@ export interface ClientesResponse {
 }
 
 export interface Pais {
+  id: number;
   codigo: string;
   nombre: string;
 }
@@ -17,6 +18,23 @@ export interface Pais {
 export interface Comercial {
   id: number;
   nombre: string;
+}
+
+export interface Estado {
+  id: number;
+  nombre: 'Activo' | 'Inactivo';
+}
+
+export interface ClientePayload {
+  empresa: string;
+  cif: string;
+  pais_id: number;
+  estado_id: number;
+  direccion?: string | null;
+  codigo_postal?: string | null;
+  ciudad?: string | null;
+  comercial_id?: number | null;
+  fecha_alta?: string | null;
 }
 
 @Injectable({
@@ -51,7 +69,23 @@ export class ClientesService {
     return this.http.get<Pais[]>('http://localhost:3000/api/paises');
   }
 
+  getEstados() {
+    return this.http.get<Estado[]>('http://localhost:3000/api/estados');
+  }
+
   getComerciales() {
     return this.http.get<Comercial[]>('http://localhost:3000/api/comerciales');
+  }
+
+  crearCliente(datos: ClientePayload) {
+    return this.http.post<ClienteDetalle>(this.apiUrl, datos);
+  }
+
+  actualizarCliente(id: number, datos: ClientePayload) {
+    return this.http.put<ClienteDetalle>(`${this.apiUrl}/${id}`, datos);
+  }
+
+  eliminarCliente(id: number) {
+    return this.http.delete<{ message: string }>(`${this.apiUrl}/${id}`);
   }
 }

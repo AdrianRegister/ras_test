@@ -85,7 +85,9 @@ export async function getClientById(id: string) {
        p.nombre AS "paisNombre",
        e.nombre AS estado,
        co.nombre AS "comercialNombre",
-       c.fecha_alta as "fechaAlta"
+       c.fecha_alta as "fechaAlta",
+       p.codigo AS "paisCodigo",
+       co.id AS "comercialId"
      FROM clientes c
      JOIN paises p ON p.id = c.pais_id
      JOIN estados e ON e.id = c.estado_id
@@ -272,16 +274,16 @@ export async function updateClient(id: number, data: ActualizarCliente) {
 export async function getClientHistory(id: number) {
   const result = await pool.query(
     `SELECT
-       id,
-       cliente_id,
-       entidad_tipo,
-       entidad_id,
-       campo,
-       valor_anterior,
-       valor_nuevo,
-       usuario_id,
-       actor_tipo,
-       fecha_hora
+      id,
+      cliente_id AS "clienteId",
+      entidad_tipo AS "entidadTipo",
+      entidad_id AS "entidadId",
+      campo,
+      valor_anterior AS "valorAnterior",
+      valor_nuevo AS "valorNuevo",
+      usuario_id AS "usuarioId",
+      actor_tipo AS "actorTipo",
+      fecha_hora AS "fechaHora"
      FROM historico_cambios
      WHERE cliente_id = $1
      ORDER BY fecha_hora DESC, id DESC`,

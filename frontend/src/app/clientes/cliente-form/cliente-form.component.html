@@ -1,0 +1,160 @@
+<div class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">
+        {{ editando ? 'Editar cliente' : 'Nuevo cliente' }}
+      </h1>
+      <p class="page-description">
+        {{
+          editando ? 'Modifica los datos del cliente.' : 'Introduce los datos del nuevo cliente.'
+        }}
+      </p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div *ngIf="cargando" class="empty-state">Cargando datos del cliente...</div>
+
+      <form *ngIf="!cargando" #clienteForm="ngForm" (ngSubmit)="guardar()">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="empresa">Empresa / razón social *</label>
+            <input
+              id="empresa"
+              name="empresa"
+              class="form-control"
+              [(ngModel)]="formulario.empresa"
+              required
+              maxlength="200"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="cif">CIF *</label>
+            <input
+              id="cif"
+              name="cif"
+              class="form-control"
+              [(ngModel)]="formulario.cif"
+              required
+              maxlength="20"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="pais">País *</label>
+            <select
+              id="pais"
+              name="pais_id"
+              class="form-control"
+              [(ngModel)]="formulario.pais_id"
+              required
+            >
+              <option [ngValue]="0" disabled>Selecciona un país</option>
+              <option *ngFor="let pais of paises" [ngValue]="pais.id">
+                {{ pais.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="estado">Estado *</label>
+            <select
+              id="estado"
+              name="estado_id"
+              class="form-control"
+              [(ngModel)]="formulario.estado_id"
+              required
+            >
+              <option [ngValue]="0" disabled>Selecciona un estado</option>
+              <option *ngFor="let estado of estados" [ngValue]="estado.id">
+                {{ estado.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="direccion">Dirección</label>
+            <input
+              id="direccion"
+              name="direccion"
+              class="form-control"
+              [(ngModel)]="formulario.direccion"
+              maxlength="250"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="codigo_postal">Código postal</label>
+            <input
+              id="codigo_postal"
+              name="codigo_postal"
+              class="form-control"
+              [(ngModel)]="formulario.codigo_postal"
+              maxlength="15"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="ciudad">Ciudad</label>
+            <input
+              id="ciudad"
+              name="ciudad"
+              class="form-control"
+              [(ngModel)]="formulario.ciudad"
+              maxlength="100"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="comercial">Comercial asignado</label>
+            <select
+              id="comercial"
+              name="comercial_id"
+              class="form-control"
+              [(ngModel)]="formulario.comercial_id"
+            >
+              <option [ngValue]="null">Sin asignar</option>
+              <option *ngFor="let comercial of comerciales" [ngValue]="comercial.id">
+                {{ comercial.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="fecha_alta">Fecha de alta</label>
+            <input
+              id="fecha_alta"
+              name="fecha_alta"
+              type="date"
+              class="form-control"
+              [(ngModel)]="formulario.fecha_alta"
+            />
+          </div>
+        </div>
+
+        <div *ngIf="error" class="form-error" role="alert">
+          {{ error }}
+        </div>
+
+        <div class="card-footer">
+          <a
+            class="btn btn-secondary"
+            [routerLink]="editando && clienteId !== null ? ['/clientes', clienteId] : ['/clientes']"
+          >
+            Cancelar
+          </a>
+
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="guardando || clienteForm.invalid"
+          >
+            {{ guardando ? 'Guardando...' : editando ? 'Guardar cambios' : 'Crear cliente' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

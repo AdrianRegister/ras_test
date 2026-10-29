@@ -1,7 +1,6 @@
-import 'dotenv/config';
 import { randomBytes, scrypt as scryptCallback } from 'node:crypto';
 import { promisify } from 'node:util';
-import { pool } from '../db/db.js';
+import { pool } from '../db/db.ts';
 
 const scrypt = promisify(scryptCallback);
 

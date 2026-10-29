@@ -4,19 +4,47 @@ services:
     container_name: internal-app-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: dev
-      POSTGRES_PASSWORD: dev123
-      POSTGRES_DB: ras_test
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - '127.0.0.1:5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql
       - ./backend/queries/snapshot/ras_test_snapshot.sql:/docker-entrypoint-initdb.d/01-ras-test-snapshot.sql:ro
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U dev -d ras_test']
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: internal-app-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+      DATABASE_URL: ${DATABASE_URL}
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: internal-app-web
+    restart: unless-stopped
+    ports:
+      - '4200:4200'
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:

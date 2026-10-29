@@ -1,0 +1,2 @@
+ALTER TABLE usuarios
+ADD COLUMN IF NOT EXISTS session_token UUID UNIQUE;

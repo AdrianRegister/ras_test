@@ -39,6 +39,10 @@ I'll track these as proposed decisions for your separate file:
 - Keep normalization functions modular, with separate responsibilities and unit tests.
 - Keep CSV parsing, validation, company consolidation, database insertion and issue reporting in separate modules.
 - Normalization must report ambiguity and data-quality issues instead of silently inventing values.
+- The CSV source is UTF-8 and must not be rewritten merely to fix display encoding.
+- Import validation must distinguish client errors from invoice errors.
+- Duplicate invoices must not be imported twice.
+- Invalid or incomplete records must be reported, not silently corrected or discarded.
 
 ### Shared TypeScript contracts and validation
 
@@ -50,3 +54,95 @@ I'll track these as proposed decisions for your separate file:
 - Use Vitest as the unit testing framework.
 - Preserve the existing strict TypeScript configuration where possible; adjust build settings when the workspace is established.
 - Ensure the final Docker Compose setup builds the complete workspace from a fresh clone.
+
+### Shared API contracts
+
+- Shared schemas and TypeScript types live in `packages/shared` and are exported through `@clientes/shared`.
+- Zod schemas provide runtime validation and inferred TypeScript types.
+- API responses use camelCase; PostgreSQL columns retain snake_case.
+- Monetary values are represented as decimal strings to avoid floating-point precision loss.
+- Client detail responses include contacts, invoices and cumulative taxable billing, excluding VAT.
+- Client list responses use pagination, with a default page size of 20 and a maximum of 100.
+- Audit history records the entity, field, previous and new values, actor and timestamp.
+- API errors use a consistent structure with a machine-readable code and message.
+- `PUT` replaces the editable client fields; `PATCH` may be introduced later.
+- Client and contact IDs currently use numeric API types. Confirm that PostgreSQL `BIGINT` IDs remain within JavaScript's safe integer range, or switch to string IDs before implementing endpoints.
+
+## Decision: Client matching and missing CIFs
+
+**Status:** Accepted
+
+### 1. Matching clients with a missing CIF
+
+- If a CSV row has no CIF, match it to an existing client using an exact match on `nombre_normalizado`.
+- If exactly one client matches, reuse that client rather than creating a duplicate.
+- Record a warning that the source row has no CIF.
+- Never invent or infer a missing CIF.
+- If no exact normalized-name match exists, treat the row as a potential new client, subject to the normal validation rules.
+
+### 2. Similar company names with different legal identifiers
+
+- Similar company names alone are not sufficient grounds for merging clients.
+- Different non-empty CIFs identify separate client records, even when their company names are similar.
+- Do not use fuzzy matching or automatic name-similarity matching to merge clients.
+- Preserve legal suffixes such as `SL`, `SA`, `SLP` and `SRL` during normalization so distinct legal entities are not merged merely because their base names are similar.
+
+### 3. Conflicting identifiers
+
+- If a row has a CIF that conflicts with the CIF of a client matched by normalized name, do not merge automatically.
+- Record an import incident for manual review.
+- Keep the existing client data unchanged until the conflict is resolved.
+
+### 4. Database integrity
+
+- Use `clientes.nombre_normalizado` for exact normalized-name matching.
+- Respect the unique constraint on `nombre_normalizado`.
+- Do not rely on CIF uniqueness enforced by the database, because no such constraint currently exists.
+- Match invoices using the client relationship and invoice number, respecting the unique constraint on `(cliente_id, numero_factura)`.
+
+### Rationale
+
+These rules allow missing CIFs and formatting variations to be handled without inventing data or merging unrelated legal entities. Ambiguous or conflicting records must be reported rather than silently resolved.
+
+## Decision: CSV import, dry runs and database logging
+
+**Status:** Accepted
+
+### 1. Two import modes
+
+- **Dry run:** reads and validates the CSV, applies normalization and matching rules, identifies duplicates and reports errors and warnings. It must not modify business data in the database.
+- **Import:** inserts valid clients, contacts and invoices into PostgreSQL, respecting all validation, matching and duplicate-handling rules.
+- Both modes must produce a clear summary of their results.
+
+### 2. Database output logs
+
+- Every dry-run execution must create an output log under `logs/db/`.
+- Every execution that performs database inserts must also create an output log under `logs/db/`.
+- Logs must be separate per execution, with filenames that distinguish the execution type and include a timestamp.
+- Logs should record the source filename, execution mode, start and end times, row counts, imported records, rejected records, duplicates, warnings and errors.
+- Import logs must distinguish between successful inserts and records skipped or rejected.
+- Logs must not contain database passwords, connection strings with credentials, or other secrets.
+- The application must report a logging failure clearly rather than silently continuing without the required audit log.
+
+### 3. Dry-run safety
+
+- A dry run must not insert, update or delete business records.
+- A dry run must not create misleading import-history records in PostgreSQL.
+- The dry-run output should make it clear which clients and invoices would be imported and which would be skipped or require review.
+
+### 4. Import safety
+
+- Validate records before inserting them.
+- Use transactions so a failed database operation does not leave partially written related records.
+- Prevent duplicate clients and invoices using the documented matching rules and database constraints.
+- Record import history and incidents for actual import executions.
+
+### 5. Log content and privacy
+
+- Logs contain operation details and results, not SQL statements.
+- Each entry should identify the operation, affected entity type, outcome and relevant record counts.
+- Include validation errors, warnings, duplicate detections and database operation failures.
+- Avoid logging unnecessary personal data, including contact names, email addresses and phone numbers.
+- Never log credentials, passwords or connection strings containing secrets.
+- Use timestamps to correlate operations within an execution.
+- Logs must distinguish successful operations, skipped records, rejected records and failures.

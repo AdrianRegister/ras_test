@@ -24,3 +24,18 @@ export type { ClienteDetalle } from './schemas/cliente.js';
 // FACTURAS
 export { DecimalStringSchema, FacturaSchema } from './schemas/factura.js';
 export type { Factura } from './schemas/factura.js';
+
+// API
+export {
+  PaginationQuerySchema,
+  PaginatedClientesSchema,
+  HistoricoCambioSchema,
+  ApiErrorSchema,
+} from './schemas/api.js';
+
+export type {
+  PaginationQuery,
+  PaginatedClientes,
+  HistoricoCambio,
+  ApiError,
+} from './schemas/api.js';

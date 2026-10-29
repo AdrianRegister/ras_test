@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "@clientes/shared": "1.0.0",
+    "@internationalized/number": "^3.6.9",
     "csv": "^6.6.4",
     "dayjs": "^1.11.23",
     "dotenv": "^18.0.9",

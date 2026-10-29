@@ -6,8 +6,9 @@ Aplicación web para gestionar clientes, contactos, facturas y su información a
 
 - Docker Desktop con Docker Compose.
 - Git, si se clona el repositorio.
+- Node.js y npm únicamente para ejecutar las pruebas locales.
 
-No es necesario instalar Node.js ni PostgreSQL en el equipo anfitrión para ejecutar la aplicación con Docker.
+No es necesario instalar PostgreSQL en el equipo anfitrión para ejecutar la aplicación con Docker.
 
 ## 2. Arranque desde cero
 
@@ -21,9 +22,9 @@ Copiar `.env.example` a `.env`:
 Copy-Item .env.example .env
 ```
 
-Revisar las variables de conexión a PostgreSQL. Los valores de ejemplo son exclusivamente para desarrollo local; deben sustituirse por credenciales adecuadas para cualquier entorno compartido.
+Revisar las variables POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, DATABASE_URL y NODE_ENV. La URL de conexión debe utilizar el nombre del servicio Docker (postgres) como host, no localhost.
 
-### Iniciar los servicios
+### Iniciar la aplicación
 
 ```powershell
 docker compose up --build -d
@@ -33,7 +34,6 @@ Comprobar el estado:
 
 ```powershell
 docker compose ps
-docker compose logs --tail 50 backend
 ```
 
 La aplicación estará disponible en:
@@ -41,14 +41,21 @@ La aplicación estará disponible en:
 - **Frontend:** http://localhost:4200
 - **API:** http://localhost:3000
 
+Para consultar los registros:
+
+```powershell
+docker compose logs --tail 50 backend
+docker compose logs --tail 50 postgres
+```
+
 ### Inicialización de la base de datos
 
-En una instalación nueva, Docker inicializa PostgreSQL utilizando las variables `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB` del archivo `.env`. No es necesario crear manualmente el usuario de PostgreSQL.
+No se necesita una base de datos ni un volumen previamente creados. En una instalación nueva:
 
-A continuación, el contenedor de PostgreSQL importa `backend/queries/snapshot/ras_test_snapshot.sql` y el backend ejecuta automáticamente:
-
-1. La migración que añade `session_token` a `usuarios`.
-2. La creación del administrador, si todavía no existe.
+1. Docker crea el usuario y la base de datos de PostgreSQL a partir de las variables del .env.
+2. PostgreSQL importa backend/queries/snapshot/ras_test_snapshot.sql.
+3. El backend aplica la migración 001_add_session_token.sql.
+4. El backend crea el usuario administrador si todavía no existe.
 
 **Credenciales iniciales de la aplicación:**
 

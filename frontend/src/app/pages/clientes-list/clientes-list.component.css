@@ -34,3 +34,26 @@
   font-size: 1.25rem;
   pointer-events: none;
 }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 180px;
+}
+
+.filter-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.filter-group .form-control {
+  width: 100%;
+}

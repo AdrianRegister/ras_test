@@ -27,6 +27,52 @@
       />
     </div>
 
+    <div class="filters">
+      <div class="filter-group">
+        <label for="estado-filter">Estado</label>
+        <select
+          id="estado-filter"
+          class="form-control"
+          [(ngModel)]="estadoSeleccionado"
+          (ngModelChange)="onFilterChange()"
+        >
+          <option value="">Todos los estados</option>
+          <option value="Activo">Activo</option>
+          <option value="Inactivo">Inactivo</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="pais-filter">País</label>
+        <select
+          id="pais-filter"
+          class="form-control"
+          [(ngModel)]="paisSeleccionado"
+          (ngModelChange)="onFilterChange()"
+        >
+          <option value="">Todos los paises</option>
+          @for (pais of paises; track pais.codigo) {
+            <option [value]="pais.codigo">{{ pais.nombre }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="comercial-filter">Comercial asignado</label>
+        <select
+          id="comercial-filter"
+          class="form-control"
+          [(ngModel)]="comercialSeleccionado"
+          (ngModelChange)="onFilterChange()"
+        >
+          <option value="">Todos los comerciales</option>
+          @for (comercial of comerciales; track comercial.id) {
+            <option [value]="comercial.id">{{ comercial.nombre }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
     @if (cargando) {
       <div class="empty-state">
         <span class="spinner" aria-label="Cargando"></span>

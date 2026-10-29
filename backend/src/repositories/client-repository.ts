@@ -36,7 +36,7 @@ export async function listClients(
        )
        AND ($2 = '' OR e.nombre = $2)
        AND ($3 = '' OR p.codigo = $3)
-       AND ($4 = '' OR co.nombre = $4)
+       AND ($4 = '' OR c.comercial_id = $4::integer)
      ORDER BY c.empresa
      LIMIT $5 OFFSET $6`,
     [search, estado, pais, comercial, limit, offset],
@@ -59,7 +59,7 @@ export async function listClients(
        )
        AND ($2 = '' OR e.nombre = $2)
        AND ($3 = '' OR p.codigo = $3)
-       AND ($4 = '' OR co.nombre = $4)`,
+       AND ($4 = '' OR c.comercial_id = $4::integer)`,
     [search, estado, pais, comercial],
   );
 

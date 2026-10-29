@@ -15,8 +15,22 @@ app.use(
 app.use(express.json());
 app.use('/api/clientes', clientesRouter);
 
-app.get('/', (req: Request, res: Response) => {
-  res.send(`Hello World!`);
+app.get('/api/paises', async (_req, res, next) => {
+  try {
+    const result = await pool.query('SELECT codigo, nombre FROM paises ORDER BY nombre');
+    res.json(result.rows);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/comerciales', async (_req, res, next) => {
+  try {
+    const result = await pool.query('SELECT id, nombre FROM comerciales ORDER BY nombre');
+    res.json(result.rows);
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get('/api/health', async (_req, res) => {

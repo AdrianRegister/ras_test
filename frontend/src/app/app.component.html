@@ -1,1 +1,8 @@
-<router-outlet></router-outlet>
+@if (mostrarCabecera) {
+  <header class="app-header">
+    <span class="app-title">Gestión de clientes</span>
+    <button type="button" class="logout-button" (click)="cerrarSesion()">Cerrar sesión</button>
+  </header>
+}
+
+<router-outlet />

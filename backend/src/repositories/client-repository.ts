@@ -176,7 +176,7 @@ export async function createClient(data: {
   return result.rows[0];
 }
 
-export async function updateClient(id: number, data: ActualizarCliente) {
+export async function updateClient(id: number, data: ActualizarCliente, usuarioId: any) {
   const client = await pool.connect();
 
   try {
@@ -254,10 +254,16 @@ export async function updateClient(id: number, data: ActualizarCliente) {
 
       await client.query(
         `INSERT INTO historico_cambios
-           (cliente_id, entidad_tipo, entidad_id, campo,
-            valor_anterior, valor_nuevo, usuario_id, actor_tipo)
-         VALUES ($1, 'cliente', $1, $2, $3, $4, NULL, 'sistema')`,
-        [id, campo, JSON.stringify(valorAnterior ?? null), JSON.stringify(valorNuevo ?? null)],
+     (cliente_id, entidad_tipo, entidad_id, campo,
+      valor_anterior, valor_nuevo, usuario_id, actor_tipo)
+   VALUES ($1, 'cliente', $1, $2, $3, $4, $5, 'usuario')`,
+        [
+          id,
+          campo,
+          JSON.stringify(valorAnterior ?? null),
+          JSON.stringify(valorNuevo ?? null),
+          usuarioId,
+        ],
       );
     }
 

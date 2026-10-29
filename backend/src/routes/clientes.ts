@@ -53,7 +53,7 @@ router.put('/:id', async (req, res) => {
   }
 
   try {
-    const cliente = await updateClient(id, validation.data);
+    const cliente = await updateClient(id, validation.data, res.locals.usuarioId);
 
     if (!cliente) {
       return res.status(404).json({ error: 'Cliente no encontrado' });

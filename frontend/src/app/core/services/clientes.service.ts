@@ -46,6 +46,7 @@ export class ClientesService {
 
   getClientes(page = 1, limit = 20, search = '', estado = '', pais = '', comercial = '') {
     return this.http.get<ClientesResponse>(this.apiUrl, {
+      withCredentials: true,
       params: {
         page,
         limit,
@@ -58,34 +59,50 @@ export class ClientesService {
   }
 
   getHistorico(id: number) {
-    return this.http.get<HistoricoCambio[]>(`${this.apiUrl}/${id}/historico`);
+    return this.http.get<HistoricoCambio[]>(`${this.apiUrl}/${id}/historico`, {
+      withCredentials: true,
+    });
   }
 
   getCliente(id: number) {
-    return this.http.get<ClienteDetalle>(`${this.apiUrl}/${id}`);
+    return this.http.get<ClienteDetalle>(`${this.apiUrl}/${id}`, {
+      withCredentials: true,
+    });
   }
 
   getPaises() {
-    return this.http.get<Pais[]>('http://localhost:3000/api/paises');
+    return this.http.get<Pais[]>('http://localhost:3000/api/paises', {
+      withCredentials: true,
+    });
   }
 
   getEstados() {
-    return this.http.get<Estado[]>('http://localhost:3000/api/estados');
+    return this.http.get<Estado[]>('http://localhost:3000/api/estados', {
+      withCredentials: true,
+    });
   }
 
   getComerciales() {
-    return this.http.get<Comercial[]>('http://localhost:3000/api/comerciales');
+    return this.http.get<Comercial[]>('http://localhost:3000/api/comerciales', {
+      withCredentials: true,
+    });
   }
 
   crearCliente(datos: ClientePayload) {
-    return this.http.post<ClienteDetalle>(this.apiUrl, datos);
+    return this.http.post<ClienteDetalle>(this.apiUrl, datos, {
+      withCredentials: true,
+    });
   }
 
   actualizarCliente(id: number, datos: ClientePayload) {
-    return this.http.put<ClienteDetalle>(`${this.apiUrl}/${id}`, datos);
+    return this.http.put<ClienteDetalle>(`${this.apiUrl}/${id}`, datos, {
+      withCredentials: true,
+    });
   }
 
   eliminarCliente(id: number) {
-    return this.http.delete<{ message: string }>(`${this.apiUrl}/${id}`);
+    return this.http.delete<{ message: string }>(`${this.apiUrl}/${id}`, {
+      withCredentials: true,
+    });
   }
 }

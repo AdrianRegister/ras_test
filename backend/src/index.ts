@@ -1,19 +1,32 @@
-import express, { type Express, type Request, type Response } from 'express';
-import cors from 'cors';
 import 'dotenv/config';
 
-import { pool } from './db/db.ts';
+import express, { type Express } from 'express';
+import cors from 'cors';
 
+import { pool } from './db/db.ts';
 import clientesRouter from './routes/clientes.js';
+import usersRouter from './routes/users.ts';
+import { requireAuth } from './middleware/auth.js';
 
 const app: Express = express();
+
 app.use(
   cors({
     origin: 'http://localhost:4200',
+    credentials: true,
   }),
 );
+
 app.use(express.json());
-app.use('/api/clientes', clientesRouter);
+
+// Login and logout must remain accessible without authentication.
+app.use('/api/users', usersRouter);
+
+// Protect client data and lookup endpoints.
+app.use('/api/clientes', requireAuth, clientesRouter);
+app.use('/api/paises', requireAuth);
+app.use('/api/estados', requireAuth);
+app.use('/api/comerciales', requireAuth);
 
 app.get('/api/paises', async (_req, res, next) => {
   try {
@@ -42,6 +55,7 @@ app.get('/api/comerciales', async (_req, res, next) => {
   }
 });
 
+// Keep the health check public.
 app.get('/api/health', async (_req, res) => {
   try {
     await pool.query('SELECT 1');

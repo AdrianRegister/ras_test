@@ -372,20 +372,210 @@ Las pruebas existentes utilizan Vitest y Supertest, con la base de datos simulad
 
 ## 7. Decisiones técnicas
 
-- **Angular:** interfaz de usuario y aplicación de página única.
-- **Express y TypeScript:** API REST y lógica de servidor.
-- **PostgreSQL:** persistencia relacional para clientes, contactos, facturas y entidades asociadas.
-- **Docker Compose:** arranque coordinado de frontend, backend y base de datos.
-- **Migraciones SQL:** evolución controlada del esquema sin depender de recrear la base de datos.
-- **Validación y tipado:** TypeScript y Zod para mejorar la consistencia de los datos.
-- **Contraseñas:** almacenamiento mediante hash derivado con scrypt, no en texto plano.
-- **Sesiones:** cookie HttpOnly y token UUID almacenado en la base de datos.
+## 7. Decisiones técnicas
+
+- **Angular:** elegido para desarrollar la interfaz de usuario como una aplicación de página única (SPA). La elección responde principalmente a la familiaridad previa con el framework, lo que permite aprovechar conocimientos existentes y acelerar el desarrollo. Además, ofrece una estructura clara para organizar componentes, servicios, rutas y formularios, facilitando el mantenimiento de la aplicación.
+
+- **Express y TypeScript:** Express se utiliza para implementar la API REST y la lógica del servidor. Se ha priorizado por su sencillez, flexibilidad y bajo overhead frente a alternativas más estructuradas como NestJS. Esto permite mantener una arquitectura ligera, sin introducir capas de abstracción o convenciones adicionales que no resultan necesarias para el alcance del proyecto. TypeScript aporta tipado estático, mejor autocompletado y detección temprana de errores durante el desarrollo.
+
+- **PostgreSQL:** elegido como sistema de persistencia por su modelo relacional y sus garantías de integridad referencial. Permite representar de forma estructurada las relaciones entre clientes, contactos, facturas y entidades asociadas, así como aplicar restricciones y claves foráneas para mantener la coherencia de los datos.
+
+- **Docker Compose:** utilizado para coordinar el arranque y la configuración del frontend, backend y base de datos. Cada servicio se ejecuta en su propio contenedor y se comunica con los demás a través de la red interna de Docker. Esto facilita reproducir el entorno de desarrollo o despliegue, reduce las dependencias del equipo anfitrión y simplifica la puesta en marcha del proyecto.
+
+- **Migraciones SQL:** permiten evolucionar el esquema de PostgreSQL de forma controlada y reproducible. Los cambios en la estructura de la base de datos se aplican mediante scripts versionados, evitando depender de la eliminación y recreación de la base de datos para incorporar nuevas funcionalidades o modificaciones.
+
+- **Validación y tipado:** TypeScript proporciona contratos de datos y comprobaciones estáticas en el código, mientras que Zod permite validar los datos en tiempo de ejecución, especialmente los recibidos a través de la API. Esta combinación ayuda a detectar entradas incorrectas antes de que lleguen a la lógica de negocio o a la base de datos.
+
+- **Contraseñas:** las contraseñas no se almacenan en texto plano. Se utiliza `scrypt` para generar un hash derivado, incorporando una sal (_salt_) para dificultar los ataques basados en tablas precalculadas y evitar que contraseñas iguales produzcan hashes idénticos. La autenticación compara el hash calculado con el almacenado.
+
+- **Sesiones:** la autenticación utiliza una cookie `HttpOnly` para transportar el identificador de sesión sin permitir su lectura directa desde JavaScript del navegador. El token es un UUID almacenado en la base de datos, lo que permite validar las sesiones en el servidor y gestionar su revocación mediante la eliminación o invalidación del registro correspondiente.
 
 ## 8. Mejoras pendientes
 
-- **Autenticación y seguridad:** sustituir el mecanismo de sesión actual por una implementación robusta de JWT, con validación rigurosa, expiración, renovación y revocación cuando corresponda. Revisar también la gestión de secretos, cookies, CORS y protección frente a ataques de fuerza bruta antes de producción.
-- **Autorización:** definir roles y permisos si se incorporan distintos tipos de usuario.
-- **Pruebas:** ampliar la cobertura de integración y añadir pruebas que utilicen una base de datos real de prueba.
-- **Migraciones:** incorporar un sistema de versionado y ejecución de migraciones más estructurado a medida que crezca el esquema.
-- **Operación:** añadir logging estructurado, monitorización y copias de seguridad automatizadas.
-- **Producción:** servir el frontend mediante un servidor web de producción y configurar HTTPS, en lugar de utilizar el servidor de desarrollo de Angular.
+- **Autenticación y seguridad:** reforzar el mecanismo de autenticación actual, incorporando una gestión de tokens más completa, con validación, expiración, renovación y revocación cuando corresponda. Revisar también la gestión de secretos, la configuración de cookies y CORS, y añadir protección frente a ataques de fuerza bruta antes de un despliegue en producción.
+
+- **Autorización:** definir un sistema de roles y permisos si la aplicación evoluciona para dar acceso a distintos tipos de usuarios, limitando las operaciones disponibles según sus responsabilidades.
+
+- **Pruebas:** ampliar la cobertura de integración y añadir pruebas contra una instancia real de PostgreSQL en un entorno aislado, para verificar también las consultas, restricciones y relaciones de la base de datos.
+
+- **Migraciones:** adoptar un sistema de versionado y ejecución de migraciones más estructurado, que facilite controlar los cambios del esquema y aplicarlos de forma reproducible en distintos entornos.
+
+- **Operación e infraestructura:** incorporar logging estructurado, monitorización y copias de seguridad automatizadas. Como posible evolución, la base de datos podría alojarse en un servicio gestionado en la nube, como **AWS RDS**, delegando tareas operativas como mantenimiento, actualizaciones y gestión de copias de seguridad al proveedor.
+
+- **Producción:** sustituir el servidor de desarrollo de Angular por un servidor web adecuado para producción y configurar HTTPS, junto con los ajustes necesarios de despliegue y configuración de los distintos servicios.
+
+## Apéndice: Normalización e importación de datos CSV
+
+### 1. Objetivo y diseño general
+
+El proyecto incluye un pipeline para migrar los datos históricos de clientes y facturas desde un fichero CSV a PostgreSQL.
+
+El objetivo no es insertar directamente los valores originales, sino realizar un proceso previo de lectura, normalización y validación para reducir inconsistencias y evitar que datos incompletos o incorrectos contaminen la base de datos.
+
+El proceso se divide conceptualmente en estas fases:
+
+1. Lectura del CSV.
+2. Normalización de los valores.
+3. Clasificación y validación de los registros.
+4. Ejecución de una simulación (_dry run_) o de la importación.
+5. Registro de resultados y errores.
+
+El fichero de origen se encuentra en:
+
+`backend/data/clientes_antiguos.csv`
+
+Se mantiene dentro del repositorio para que la importación y sus pruebas no dependan de rutas locales, como el escritorio del desarrollador o el directorio desde el que se ejecuta el proceso.
+
+### 2. Lectura del CSV
+
+El módulo responsable de la lectura utiliza `csv/sync`.
+
+La configuración contempla las características del fichero de origen:
+
+- Codificación UTF-8.
+- Compatibilidad con BOM (_Byte Order Mark_).
+- Separador de campos `;`.
+- Cabeceras para identificar las columnas.
+- Campos entrecomillados.
+- Eliminación de espacios innecesarios.
+- Omisión de líneas vacías.
+- Comprobación del número de columnas de cada registro.
+- Conservación de la información de fila para facilitar la identificación de errores.
+
+La lectura se ha probado con el fichero real, que contiene 18 registros. Las pruebas verificaron, entre otros aspectos, la conservación de caracteres acentuados, la presencia de registros sin factura y la conservación de números de factura repetidos.
+
+Es importante no descartar automáticamente los registros con factura vacía ni eliminar duplicados durante la lectura: esas decisiones corresponden a fases posteriores del proceso.
+
+### 3. Normalización de datos
+
+La normalización transforma los valores originales en una representación coherente antes de validarlos o utilizarlos para buscar entidades existentes en la base de datos.
+
+Se contemplan los siguientes grupos de datos:
+
+| Campo              | Tratamiento                            |
+| ------------------ | -------------------------------------- |
+| Empresa            | Limpieza y normalización del texto     |
+| CIF                | Normalización del identificador fiscal |
+| Correo electrónico | Limpieza y validación del formato      |
+| Teléfono           | Normalización y comprobación           |
+| País               | Normalización del valor textual        |
+| Estado             | Normalización del estado del cliente   |
+| Fechas             | Normalización y validación del formato |
+| Importes           | Normalización de valores monetarios    |
+
+La finalidad es evitar que diferencias de formato —por ejemplo, espacios sobrantes o representaciones distintas de un mismo valor— provoquen inconsistencias durante la importación o dificulten la identificación de clientes existentes.
+
+La normalización y la validación son responsabilidades diferentes: un valor puede ser transformado correctamente y seguir siendo inválido desde el punto de vista de las reglas de negocio.
+
+### 4. Validación y clasificación de registros
+
+Una vez normalizados, los registros se clasifican según su validez.
+
+Las reglas documentadas incluyen:
+
+**Datos obligatorios**
+
+- Empresa.
+- País.
+- Estado del cliente.
+
+**Validaciones de formato**
+
+- Correo electrónico.
+- Fechas.
+- Valores monetarios.
+
+**Advertencias**
+
+- Los teléfonos pueden generar advertencias cuando no cumplen las comprobaciones previstas, sin que necesariamente se considere inválido todo el registro.
+
+**Facturas opcionales**
+
+Un cliente puede no tener factura asociada. En ese caso, el registro del cliente no debe descartarse por ese motivo.
+
+Sin embargo, si un registro contiene información de factura, deben estar presentes y ser válidos los campos correspondientes:
+
+- Número de factura.
+- Fecha de factura.
+- Base imponible.
+- Porcentaje de IVA, dentro del intervalo de 0 a 100.
+
+Esta distinción permite conservar clientes sin facturas y, al mismo tiempo, evitar la creación de facturas incompletas.
+
+### 5. Organización de los módulos
+
+La lógica se distribuye en módulos independientes dentro de `backend/src/import/`:
+
+| Módulo                   | Responsabilidad                              |
+| ------------------------ | -------------------------------------------- |
+| `csv-reader.ts`          | Lectura del fichero CSV                      |
+| `classify-import-row.ts` | Clasificación y validación de registros      |
+| `dry-run.ts`             | Ejecución de la simulación                   |
+| `import-data.ts`         | Lógica de importación                        |
+| `import-logger.ts`       | Registro de resultados                       |
+| `import-types.ts`        | Tipos compartidos del proceso                |
+| `lookup-resolver.ts`     | Resolución de referencias                    |
+| `match-csv-clients.ts`   | Identificación y correspondencia de clientes |
+| `run-dry-run.ts`         | Punto de entrada para la simulación          |
+| `run-import.ts`          | Punto de entrada para la importación         |
+
+La separación permite mantener diferenciadas la lectura, la transformación, la validación y las operaciones de importación. También facilita probar cada responsabilidad de forma independiente.
+
+La lógica de normalización se encuentra separada bajo `backend/src/normalization/`.
+
+### 6. Dry run: simulación sin modificar la base de datos
+
+El _dry run_ permite ejecutar el pipeline completo de preparación de datos sin insertar ni modificar registros en PostgreSQL.
+
+Su funcionamiento es:
+
+1. Leer el CSV.
+2. Normalizar los valores.
+3. Clasificar los registros.
+4. Detectar problemas de validación.
+5. Detectar números de factura duplicados.
+6. Generar un resumen de los resultados.
+7. Registrar los resultados de la simulación.
+
+El objetivo es detectar problemas antes de ejecutar una importación real.
+
+**Garantía principal:** el dry run no realiza escrituras en la base de datos ni modifica su historial.
+
+La detección de facturas duplicadas se incorporó como parte de esta fase de revisión. La primera comprobación utilizaba el número de factura como criterio de detección. No obstante, se identificó que la unicidad definitiva debe evaluarse mediante la combinación de cliente y número de factura, ya que el número por sí solo no constituye necesariamente una clave única global.
+
+Por tanto, dos clientes distintos pueden tener facturas con el mismo número sin que eso implique un duplicado real.
+
+### 7. Logging y trazabilidad
+
+El proceso dispone de un módulo específico, `import-logger.ts`, para centralizar el registro de resultados.
+
+Los resultados del dry run se guardan bajo:
+
+`logs/db`
+
+El registro permite conservar información sobre la ejecución y facilitar la revisión de los problemas encontrados sin tener que repetir manualmente todo el análisis del CSV.
+
+La clasificación y la información de fila son especialmente importantes para localizar los registros que requieren intervención.
+
+El formato exacto de los mensajes, los niveles de logging y la política de rotación de archivos deben consultarse en la implementación actual de `import-logger.ts`; no se consideran aquí especificaciones confirmadas.
+
+### 8. Pruebas
+
+La lectura del CSV y la lógica de simulación se han probado mediante tests automatizados.
+
+Las pruebas del lector verifican el tratamiento de la codificación, los separadores, los caracteres acentuados, las filas vacías y los registros con facturas vacías o repetidas.
+
+Las pruebas del dry run utilizan dependencias simuladas (_mocks_) para comprobar la lógica de procesamiento y registro sin necesitar una conexión real a PostgreSQL.
+
+Esto permite validar el comportamiento de las fases previas a la importación de forma aislada y reproducible.
+
+### 9. Consideraciones de diseño
+
+Las decisiones principales del pipeline responden a estos criterios:
+
+- **Separación de responsabilidades:** la lectura, normalización, validación e importación se mantienen desacopladas.
+- **Conservación de datos:** la lectura no debe descartar silenciosamente registros con información opcional ausente ni eliminar duplicados antes de analizarlos.
+- **Validación previa:** los problemas se identifican antes de realizar escrituras en la base de datos.
+- **Simulación segura:** el dry run permite evaluar el resultado sin modificar los datos existentes.
+- **Trazabilidad:** los resultados se registran para facilitar la revisión y la corrección de incidencias.
+- **Reproducibilidad:** el fichero CSV forma parte del repositorio y las rutas utilizadas por los tests no dependen del directorio de trabajo del usuario.

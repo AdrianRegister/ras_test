@@ -123,7 +123,7 @@ export async function getClientById(id: string) {
       [id],
     ),
     pool.query(
-      `SELECT COALESCE(SUM(total), 0) AS "facturacionAcumulada"
+      `SELECT COALESCE(SUM(base_imponible), 0) AS "facturacionAcumulada"
        FROM facturas
        WHERE cliente_id = $1`,
       [id],

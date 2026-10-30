@@ -44,9 +44,9 @@ La aplicación estará disponible en:
 Para consultar los registros:
 
 ```powershell
-docker compose logs --tail 50 internal-app-db
-docker compose logs --tail 50 internal-app-api
-docker compose logs --tail 50 internal-app-web
+docker compose logs --tail 50 postgres
+docker compose logs --tail 50 backend
+docker compose logs --tail 50 frontend
 ```
 
 ### Inicialización de la base de datos
@@ -401,6 +401,8 @@ Las pruebas existentes utilizan Vitest y Supertest, con la base de datos simulad
 - **Sesiones:** la autenticación utiliza una cookie `HttpOnly` para transportar el identificador de sesión sin permitir su lectura directa desde JavaScript del navegador. El token es un UUID almacenado en la base de datos, lo que permite validar las sesiones en el servidor y gestionar su revocación mediante la eliminación o invalidación del registro correspondiente.
 
 ## 8. Mejoras pendientes
+
+- **CRUD de contactos de cliente:** no era un requisito del proyecto, pero sería lógico implementarlo. Se podría hacer sencillamente siguiendo los patrones arquitecturales de la API ya establecidos.
 
 - **Autenticación y seguridad:** reforzar el mecanismo de autenticación actual, incorporando una gestión de tokens más completa, con validación, expiración, renovación y revocación cuando corresponda. Revisar también la gestión de secretos, la configuración de cookies y CORS, y añadir protección frente a ataques de fuerza bruta antes de un despliegue en producción.
 
